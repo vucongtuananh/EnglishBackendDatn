@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: ./base
+      dockerfile: Dockerfile
+    container_name: laravel_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./base:/var/www/html
+      - /var/www/html/vendor     # giữ lại vendor nếu chạy composer ngoài
+    depends_on:
+      - db
+      - whisper_service
+    environment:
+      # Laravel DB config
+      - DB_CONNECTION=mysql
+      - DB_HOST=db               # <- đúng tên service db
+      - DB_PORT=3306
+      - DB_DATABASE=english_learning
+      - DB_USERNAME=root
+      - DB_PASSWORD=laravel_pass
+      - WHISPER_API_URL=http://whisper_service:8080
+    restart: always
+    networks:
+      - appnet
+
+  whisper_service:
+    build: ./whisper_service
+    container_name: whisper_api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./whisper_service/data:/app/data
+    restart: always
+    networks:
+      - appnet
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: english_learning
+      MYSQL_ROOT_PASSWORD: laravel_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - appnet
+
+volumes:
+  db_data:
+
+networks:
+  appnet:
+    driver: bridge
